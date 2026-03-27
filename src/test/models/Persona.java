@@ -2,6 +2,9 @@ package test.models;
 
 public class Persona {
     public void mostrarDetalles() {
-        System.out.println("Detalles de la persona");
+        System.out.println("Detalles de la persona básica.");
+    }
+    protected String obtenerTipoEntidad() {
+        return "Persona";
     }
 }

@@ -3,36 +3,40 @@ package test.models;
 import com.generator.annotations.*;
 
 @DocumentedClass(
-        author = "Desarrollador Backend",
-        description = "Entidad principal para la gestión de acceso en el sistema MVC. (Compatible con Java 25)",
-        version = "1.0.0"
+        author = "Estudiante de Ingeniería",
+        description = "Clase que representa un Usuario final con permisos de acceso y herencia de Persona.",
+        version = "1.2.0"
 )
 public class Usuario extends Persona {
 
-    @DocumentedField(description = "Identificador único asignado al estudiante/usuario en la base de datos")
-    private int student_id = 31544978;
+    @DocumentedField(description = "Identificador numérico único de la base de datos.")
+    private int userId;
 
-    @DocumentedField(description = "Correo electrónico para inicio de sesión")
-    public String email;
+    @DocumentedField(description = "Nombre completo de visualización.")
+    public String nombre;
 
-    // Constructor
-    public Usuario(int student_id, String email) {
-        this.student_id = student_id;
-        this.email = email;
+    @DocumentedField(description = "Campo estático de prueba.")
+    public static final String ROL_DEFECTO = "GUEST";
+
+    public Usuario() { }
+
+    public Usuario(int userId, String nombre) {
+        this.userId = userId;
+        this.nombre = nombre;
     }
 
-    @DocumentedMethod(description = "Obtiene el identificador del usuario")
-    public int getStudent_id() {
-        return student_id;
-    }
+    @DocumentedMethod(description = "Devuelve el ID único.")
+    public int getUserId() { return userId; }
 
-    @DocumentedMethod(description = "Actualiza el correo electrónico validando el formato")
-    public void setEmail(String email, boolean forzarActualizacion) {
-        this.email = email;
-    }
+    public void setUserId(int userId) { this.userId = userId; }
 
     @Override
+    @DocumentedMethod(description = "Imprime los datos específicos del Usuario.")
     public void mostrarDetalles() {
-        System.out.println("Usuario ID: " + student_id);
+        System.out.println("Usuario: " + nombre + " (ID: " + userId + ")");
+    }
+    @Override
+    protected String obtenerTipoEntidad() {
+        return "Usuario";
     }
 }

@@ -5,13 +5,16 @@ import test.models.Usuario;
 
 public class Main {
     public static void main(String[] args) {
-        DocGenerator generator = new DocGenerator();
+        System.out.println("==============================================");
+        System.out.println("▶️ Iniciando Generador de Documentación Rúbrica 100%");
+        System.out.println("==============================================\n");
+
+        DocGenerator engine = new DocGenerator();
         try {
-            System.out.println("Iniciando análisis de clase con Reflection...");
-            generator.generateMarkdown(Usuario.class);
-            System.out.println("Proceso finalizado exitosamente.");
+            engine.generateMarkdown(Usuario.class);
+
         } catch (Exception e) {
-            System.err.println("Error al generar la documentación:");
+            System.err.println("❌ Ocurrió un error crítico durante la generación:");
             e.printStackTrace();
         }
     }
