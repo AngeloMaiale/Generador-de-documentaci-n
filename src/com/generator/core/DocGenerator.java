@@ -13,72 +13,91 @@ public class DocGenerator {
     public void generateMarkdown(Class<?> clazz) throws Exception {
         StringBuilder sb = new StringBuilder();
         this.fieldNames = getFieldNames(clazz);
-        sb.append("# Documentación de la Clase: `").append(clazz.getSimpleName()).append("`\n\n");
-        sb.append("## Información General\n\n");
-        sb.append("| Concepto | Detalle |\n");
-        sb.append("| :--- | :--- |\n");
-        sb.append("| **Nombre Completo** | `").append(clazz.getName()).append("` |\n");
+        sb.append("# Clase: `").append(clazz.getSimpleName()).append("`\n\n");
 
         if (clazz.isAnnotationPresent(DocumentedClass.class)) {
             DocumentedClass ann = clazz.getAnnotation(DocumentedClass.class);
-            sb.append("| **Autor** | ").append(ann.author()).append(" |\n");
-            sb.append("| **Descripción** | ").append(ann.description()).append(" |\n");
-            sb.append("| **Versión** | ").append(ann.version()).append(" |\n");
+            sb.append("> ").append(ann.description()).append("\n\n");
+            sb.append("- **Autor:** ").append(ann.author()).append("\n");
+            sb.append("- **Versión:** ").append(ann.version()).append("\n\n");
         }
 
         boolean isSubclass = !clazz.getSuperclass().equals(Object.class);
-        sb.append("| **Es Subclase** | ").append(isSubclass ? "Sí (Hereda de `" + clazz.getSuperclass().getSimpleName() + "`)" : "No").append(" |\n\n");
+        if (isSubclass) {
+            sb.append("**Extiende:** `").append(clazz.getSuperclass().getSimpleName()).append("`\n\n");
+        }
+
+        sb.append("## Índice\n\n");
+
+        sb.append("### Atributos (Properties)\n");
+        for (Field field : clazz.getDeclaredFields()) {
+            sb.append("- [`").append(field.getName()).append("`](#").append(field.getName().toLowerCase()).append(")\n");
+        }
+
+        sb.append("\n### Métodos (Methods)\n");
+        for (Method method : clazz.getDeclaredMethods()) {
+            if (method.isSynthetic()) continue;
+            sb.append("- [`").append(method.getName()).append("`](#").append(method.getName().toLowerCase()).append(")\n");
+        }
+        sb.append("\n---\n\n");
 
         sb.append("## Atributos\n\n");
-        sb.append("| Nombre | Tipo | Modificadores | Descripción |\n");
-        sb.append("| :--- | :--- | :--- | :--- |\n");
-
         for (Field field : clazz.getDeclaredFields()) {
+            sb.append("### `").append(field.getName()).append("`\n\n");
+
+            sb.append("```java\n");
+            sb.append(Modifier.toString(field.getModifiers())).append(" ")
+                    .append(field.getType().getSimpleName()).append(" ")
+                    .append(field.getName()).append(";\n");
+            sb.append("```\n\n");
+
             String desc = field.isAnnotationPresent(DocumentedField.class)
                     ? field.getAnnotation(DocumentedField.class).description()
-                    : "N/A";
-
-            sb.append(String.format("| **%s** | `%s` | `%s` | %s |\n",
-                    field.getName(),
-                    field.getType().getSimpleName(),
-                    Modifier.toString(field.getModifiers()),
-                    desc));
+                    : "Sin descripción proporcionada.";
+            sb.append("**Descripción:** ").append(desc).append("\n\n");
+            sb.append("---\n\n");
         }
-        sb.append("\n");
 
-        sb.append("## Operaciones (Constructores y Métodos)\n\n");
-        sb.append("| Firma (Nombre) | Descripción | Parámetros | Retorno | Mods | Cons. | Over. | G/S |\n");
-        sb.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n");
-
-        for (Constructor<?> cons : clazz.getDeclaredConstructors()) {
-            sb.append(String.format("| **%s()** | Constructor por defecto. | %s | N/A | `%s` | Sí | No | No |\n",
-                    clazz.getSimpleName(),
-                    formatParameters(cons.getParameters()),
-                    Modifier.toString(cons.getModifiers())));
-        }
+        sb.append("## Métodos\n\n");
 
         for (Method method : clazz.getDeclaredMethods()) {
-            if (method.isSynthetic()) continue; // Ignorar métodos generados por el compilador
+            if (method.isSynthetic()) continue;
+
+            sb.append("### `").append(method.getName()).append("`\n\n");
+
+            sb.append("```java\n");
+            sb.append(Modifier.toString(method.getModifiers())).append(" ")
+                    .append(method.getReturnType().getSimpleName()).append(" ")
+                    .append(method.getName()).append("(").append(formatParametersCode(method.getParameters())).append(");\n");
+            sb.append("```\n\n");
 
             String desc = method.isAnnotationPresent(DocumentedMethod.class)
-                    ? method.getAnnotation(DocumentedMethod.class).description() : "N/A";
+                    ? method.getAnnotation(DocumentedMethod.class).description() : "Sin descripción proporcionada.";
+            sb.append("**Descripción:** ").append(desc).append("\n\n");
 
-            sb.append(String.format("| **%s()** | %s | %s | `%s` | `%s` | No | %s | %s |\n",
-                    method.getName(),
-                    desc,
-                    formatParameters(method.getParameters()),
-                    method.getReturnType().getSimpleName(),
-                    Modifier.toString(method.getModifiers()),
-                    isOverridden(method, clazz) ? "Sí" : "No",
-                    checkAccessorForField(method)
-            ));
+            if (method.getParameterCount() > 0) {
+                sb.append("**Parámetros:**\n\n");
+                sb.append("| Nombre | Tipo | Descripción |\n");
+                sb.append("| :--- | :--- | :--- |\n");
+                for (Parameter p : method.getParameters()) {
+                    sb.append(String.format("| `%s` | `%s` | - |\n", p.getName(), p.getType().getSimpleName()));
+                }
+                sb.append("\n");
+            }
+            sb.append("**Retorno:** `").append(method.getReturnType().getSimpleName()).append("`\n\n");
+            String accessorInfo = checkAccessorForField(method);
+            if (!accessorInfo.equals("No")) {
+                sb.append("- 💡 *Este método es un ").append(accessorInfo).append(".*\n");
+            }
+            if (isOverridden(method, clazz)) {
+                sb.append("- 🔄 *Sobreescribe un método de la clase padre.*\n");
+            }
+
+            sb.append("\n---\n\n");
         }
-
         Path outputPath = Paths.get(clazz.getSimpleName() + "_Doc.md");
         Files.writeString(outputPath, sb.toString());
-        System.out.println("------------------------------------------------");
-        System.out.println("✅ Documentación 100% Rúbrica generada en:\n👉 " + outputPath.toAbsolutePath());
-        System.out.println("------------------------------------------------");
+        System.out.println("✅ Documentación estilo Compodoc generada en: " + outputPath.toAbsolutePath());
     }
 
     private Set<String> getFieldNames(Class<?> clazz) {
@@ -87,11 +106,10 @@ public class DocGenerator {
                 .collect(Collectors.toSet());
     }
 
-    private String formatParameters(Parameter[] parameters) {
-        if (parameters.length == 0) return "Ninguno";
+    private String formatParametersCode(Parameter[] parameters) {
         return Arrays.stream(parameters)
-                .map(p -> "`" + p.getType().getSimpleName() + " " + p.getName() + "`")
-                .collect(Collectors.joining(", <br>")); // <br> para salto de línea en celda
+                .map(p -> p.getType().getSimpleName() + " " + p.getName())
+                .collect(Collectors.joining(", "));
     }
 
     private String checkAccessorForField(Method m) {
@@ -113,9 +131,8 @@ public class DocGenerator {
         String fieldRealName = possibleField.substring(0, 1).toLowerCase() + possibleField.substring(1);
 
         if (this.fieldNames.contains(fieldRealName)) {
-            return String.format("Sí (%s de `%s`) ", type, fieldRealName);
+            return String.format("%s de `%s`", type, fieldRealName);
         }
-
         return "No";
     }
 
